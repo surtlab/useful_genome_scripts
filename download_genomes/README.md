@@ -4,6 +4,58 @@ A Bash script for downloading bacterial genome sequences from NCBI in GenBank (`
 
 ---
 
+## What's new in v1.3
+
+### Bug fix: spaces in output directory paths
+`makeblastdb` and `blastn` have a known bug where they tokenize their own argument strings on spaces, ignoring the OS-level quoting that bash provides. This means paths containing spaces — such as iCloud Drive paths (`~/Library/Mobile Documents/...`) — would cause both database building and querying to silently fail with errors like:
+
+```
+BLAST options error: File /Users/you/Library/Mobile does not exist
+```
+
+**Fix:** The script now stages all `makeblastdb` operations through a guaranteed space-free temp directory (`/tmp/blastdb_XXXXXX`), builds the databases there, then moves the finished index files to the real output directory. This means `-b` now works correctly regardless of whether your output path contains spaces.
+
+**For `blastn`/`blastp` queries:** If your blast_db directory is inside a path with spaces, you must still work around the same BLAST bug yourself. The recommended approach is to `cd` into the blast_db directory first and use a relative db name:
+
+```bash
+cd "/Users/you/Library/Mobile Documents/.../blast_db"
+blastn -db GCF_017921755.1 -query my_query.fna -evalue 1e-5 -outfmt 6
+```
+
+Or use a symlink to avoid the issue permanently:
+
+```bash
+ln -s "/Users/you/Library/Mobile Documents/.../blast_db" ~/blast_db
+blastn -db ~/blast_db/GCF_017921755.1 -query my_query.fna -evalue 1e-5 -outfmt 6
+```
+
+### Change: BLAST database naming (no `_nucl` / `_prot` suffix)
+
+Previous versions named BLAST databases with a `_nucl` or `_prot` suffix:
+```
+GCF_017921755.1_nucl.nhr   ← old
+GCF_017921755.1_prot.phr   ← old
+```
+
+As of v1.3, databases are named using just the accession, matching the convention of building manually with `makeblastdb`:
+```
+GCF_017921755.1.nhr   ← new
+GCF_017921755.1.phr   ← new
+```
+
+This means `-db` now takes the plain accession name with no suffix:
+```bash
+# v1.3 and later
+blastn -db ./blast_db/GCF_017921755.1 -query my_query.fna -outfmt 6
+
+# Previous versions required
+blastn -db ./blast_db/GCF_017921755.1_nucl -query my_query.fna -outfmt 6
+```
+
+> **Note:** If you built databases with a previous version of this script, rebuild them by re-running with `-b` against your existing `.gbk` files. Old `_nucl`/`_prot` databases will not be automatically removed.
+
+---
+
 ## Requirements
 
 ### Always required
@@ -130,6 +182,8 @@ chmod +x download_genbank.sh
 ./download_genbank.sh -i accessions.txt -o ./sequences -e your@email.com
 ```
 
+> **Note for iCloud Drive users:** If your output directory is inside iCloud Drive (e.g. `~/Library/Mobile Documents/com~apple~CloudDocs/...`), the `-b` flag will still work correctly as of v1.3. However, running `blastn`/`blastp` against databases in that path requires the `cd` workaround described in the "What's new" section above, or a symlink to a space-free location.
+
 > **Note:** If you are using conda, make sure your environment is activated before running the script so that all dependencies are available: `conda activate your-environment`
 
 ---
@@ -210,10 +264,10 @@ When `-b` is passed, the script inspects each successfully downloaded `.gbk` and
    - **Nucleotide sequences** from `ORIGIN` blocks → `<accession>.fna`
    - **Protein sequences** from `/translation=` tags in CDS features → `<accession>.faa`
 2. `makeblastdb` is run on each non-empty file:
-   - `.fna` → nucleotide database (`_nucl.*`) — usable with `blastn`, `tblastn`, `tblastx`
-   - `.faa` → protein database (`_prot.*`) — usable with `blastp`, `blastx`
+   - `.fna` → nucleotide database (`<accession>.n*`) — usable with `blastn`, `tblastn`, `tblastx`
+   - `.faa` → protein database (`<accession>.p*`) — usable with `blastp`, `blastx`
 
-Both databases are built if the genome is fully annotated. If a genome has no CDS annotations (e.g. a draft WGS assembly), only the nucleotide database is built and the protein step is silently skipped. Partial annotation is handled gracefully — if only some contigs have `/translation=` tags, proteins are extracted from those contigs and the rest are ignored.
+Both databases are built if the genome is fully annotated. If a genome has no CDS annotations (e.g. a draft WGS assembly), only the nucleotide database is built and the protein step is silently skipped.
 
 Duplicate protein IDs (common in WGS assemblies where the same `WP_` accession appears across multiple contigs) are deduplicated automatically — only the first occurrence is written to the `.faa`.
 
@@ -223,10 +277,10 @@ Example BLAST usage after building:
 
 ```bash
 # Nucleotide search
-blastn -query my_query.fna -db ./genomes/blast_db/GCF_017921755.1_nucl -out results.txt
+blastn -query my_query.fna -db ./genomes/blast_db/GCF_017921755.1 -out results.txt
 
 # Protein search
-blastp -query my_query.faa -db ./genomes/blast_db/GCF_017921755.1_prot -out results.txt
+blastp -query my_query.faa -db ./genomes/blast_db/GCF_017921755.1 -out results.txt
 ```
 
 ---
