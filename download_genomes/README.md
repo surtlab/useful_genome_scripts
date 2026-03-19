@@ -19,6 +19,55 @@ The script checks all relevant dependencies at startup and exits with a clear er
 
 ---
 
+## Running on Windows
+
+This script requires a bash environment and Unix tools that are not available natively on Windows. The recommended solution is to use **Windows Subsystem for Linux (WSL)**, which provides a full Linux environment inside Windows.
+
+### Step 1: Install WSL (one-time setup)
+
+Open **PowerShell as Administrator** and run:
+
+```powershell
+wsl --install
+```
+
+This installs WSL with Ubuntu by default. Restart your computer when prompted.
+
+### Step 2: Open WSL
+
+Search for **Ubuntu** in the Start menu and open it. The first launch will ask you to create a Linux username and password.
+
+### Step 3: Install dependencies inside WSL
+
+```bash
+sudo apt update
+sudo apt install curl python3
+```
+
+BLAST+ (only needed if using `-b`):
+```bash
+sudo apt install ncbi-blast+
+```
+
+### Step 4: Access your files
+
+Your Windows files are accessible inside WSL under `/mnt/c/`. For example, if your accessions file is on your Desktop:
+
+```bash
+cd /mnt/c/Users/YourWindowsUsername/Desktop
+```
+
+### Step 5: Run the script
+
+```bash
+chmod +x download_genbank.sh
+./download_genbank.sh -i accessions.txt -o ./sequences -e your@email.com
+```
+
+> **Note:** If you have conda installed on Windows, you can also run the script from **Git Bash** (included with Git for Windows). However, WSL is more reliable for scripts that use `mktemp` and `/tmp/` paths.
+
+---
+
 ## Usage
 
 ```bash
