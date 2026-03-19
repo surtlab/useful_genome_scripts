@@ -68,6 +68,72 @@ chmod +x download_genbank.sh
 
 ---
 
+## Running on macOS
+
+macOS comes with bash and most required Unix tools pre-installed, so setup is straightforward.
+
+### Step 1: Check your bash version
+
+macOS ships with bash 3.2 by default (due to licensing), but this script requires bash 4.0+. Check your version:
+
+```bash
+bash --version
+```
+
+If the version is below 4.0, install an updated bash via Homebrew:
+
+```bash
+brew install bash
+```
+
+If you don't have Homebrew installed, you can install it with:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### Step 2: Check for required tools
+
+`curl` and `python3` are pre-installed on modern macOS. Verify with:
+
+```bash
+curl --version
+python3 --version
+```
+
+If `python3` is missing, install it via Homebrew:
+
+```bash
+brew install python3
+```
+
+### Step 3: Install BLAST+ (only needed if using `-b`)
+
+Via Homebrew:
+
+```bash
+brew install blast
+```
+
+Or via conda:
+
+```bash
+conda install -c bioconda blast
+```
+
+### Step 4: Run the script
+
+Open Terminal, navigate to the folder containing the script, and run:
+
+```bash
+chmod +x download_genbank.sh
+./download_genbank.sh -i accessions.txt -o ./sequences -e your@email.com
+```
+
+> **Note:** If you are using conda, make sure your environment is activated before running the script so that all dependencies are available: `conda activate your-environment`
+
+---
+
 ## Usage
 
 ```bash
